@@ -1,9 +1,15 @@
+use std::net::IpAddr;
+use std::time::Duration;
 use std::{env, fs::File, io::BufReader};
 
 use dns_lookup::lookup_host;
 use dotenv::dotenv;
+use futures::future::join_all;
 use ipinfo::{IpInfo, IpInfoConfig};
+use rand::random;
 use rayon::prelude::*;
+use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
+use tokio::time;
 
 #[derive(Debug, serde::Deserialize)]
 struct Record {
@@ -24,6 +30,15 @@ struct RecordWithGeolocation {
     // url: String,
     ip: String,
     location: String,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+struct RecordWithTime {
+    // name: String,
+    // url: String,
+    ip: String,
+    location: String,
+    time: u8,
 }
 
 fn collect_ips() -> anyhow::Result<()> {
@@ -111,12 +126,104 @@ async fn collect_geolocations() -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn ping_ips() -> anyhow::Result<()> {
+    let input = File::open("./with_geolocations.json")?;
+    let records: Vec<RecordWithGeolocation> = serde_json::from_reader(BufReader::new(input))?;
+
+    todo!("throttle the join all, or else the internet just crashes");
+
+    let mut tasks = Vec::new();
+    let client_v4 = Client::new(&Config::default())?;
+    let client_v6 = Client::new(&Config::builder().kind(ICMP::V6).build())?;
+
+    for r in records {
+        match r.ip.parse() {
+            Ok(IpAddr::V4(addr)) => {
+                tasks.push(tokio::spawn(ping(client_v4.clone(), IpAddr::V4(addr), r)))
+            }
+            Ok(IpAddr::V6(addr)) => {
+                tasks.push(tokio::spawn(ping(client_v6.clone(), IpAddr::V6(addr), r)))
+            }
+            Err(e) => println!("{} parse to ipaddr error: {}", r.ip, e),
+        }
+    }
+
+    let results = join_all(tasks).await;
+    let results = results
+        .into_iter()
+        .filter(|r| r.is_ok())
+        .map(|r| r.unwrap())
+        .filter(|r| r.is_some())
+        .map(|r| r.unwrap())
+        .collect::<Vec<_>>();
+
+    let output = File::create("./with_times.json")?;
+    serde_json::to_writer_pretty(output, &results)?;
+
+    Ok(())
+}
+
+async fn ping(
+    client: Client,
+    addr: IpAddr,
+    record: RecordWithGeolocation,
+) -> Option<RecordWithTime> {
+    let payload = [0; 56];
+    let mut pinger = client.pinger(addr, PingIdentifier(random())).await;
+    pinger.timeout(Duration::from_secs(1));
+    // let mut interval = time::interval(Duration::from_secs(1));
+    // for idx in 0..5 {
+    // interval.tick().await;
+    let res = match pinger.ping(PingSequence(0), &payload).await {
+        Ok((IcmpPacket::V4(packet), dur)) => {
+            // println!(
+            //     "No.{}: {} bytes from {}: icmp_seq={} ttl={:?} time={:0.2?}",
+            //     idx,
+            //     packet.get_size(),
+            //     packet.get_source(),
+            //     packet.get_sequence(),
+            //     packet.get_ttl(),
+            //     dur
+            // );
+            Some(RecordWithTime {
+                ip: record.ip.clone(),
+                location: record.location.clone(),
+                time: packet.get_ttl().unwrap_or_default(),
+            })
+        }
+        Ok((IcmpPacket::V6(packet), dur)) => {
+            // println!(
+            //     "No.{}: {} bytes from {}: icmp_seq={} hlim={} time={:0.2?}",
+            //     idx,
+            //     packet.get_size(),
+            //     packet.get_source(),
+            //     packet.get_sequence(),
+            //     packet.get_max_hop_limit(),
+            //     dur
+            // );
+            Some(RecordWithTime {
+                ip: record.ip.clone(),
+                location: record.location.clone(),
+                time: packet.get_max_hop_limit(),
+            })
+        }
+        Err(e) => {
+            println!("Err: {} ping {}", pinger.host, e);
+            None
+        }
+    };
+    // }
+    println!("[+] {} done.", pinger.host);
+
+    res
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv()?;
     //collect_ips()?;
-    collect_geolocations().await?;
-    // ping_ips()?;
+    // collect_geolocations().await?;
+    ping_ips().await?;
 
     Ok(())
 }
