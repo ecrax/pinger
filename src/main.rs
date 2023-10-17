@@ -16,7 +16,7 @@ struct RecordWithIp {
     ip: String,
 }
 
-fn main() -> anyhow::Result<()> {
+fn collect_ips() -> anyhow::Result<()> {
     let input = File::open("./data.csv")?;
     let mut rdr = csv::Reader::from_reader(BufReader::new(input));
     let results = rdr
@@ -49,8 +49,16 @@ fn main() -> anyhow::Result<()> {
         .map(|r| r.unwrap())
         .collect::<Vec<_>>();
 
-    let output = File::create("./data.json")?;
+    let output = File::create("./with_ips.json")?;
     serde_json::to_writer_pretty(output, &ips)?;
+
+    Ok(())
+}
+
+fn main() -> anyhow::Result<()> {
+    //collect_ips()?;
+    collect_geolocations()?;
+    ping_ips()?;
 
     Ok(())
 }
