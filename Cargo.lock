@@ -110,6 +110,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "cities"
+version = "0.2.0"
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -346,6 +350,12 @@ dependencies = [
  "pin-utils",
  "slab",
 ]
+
+[[package]]
+name = "geoutils"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36d244a08113319b5ebcabad2b8b7925732d15eec46d7e7ac3c11734f3b7a6ad"
 
 [[package]]
 name = "getrandom"
@@ -794,11 +804,14 @@ name = "pinger"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cities",
  "csv",
  "dns-lookup",
  "dotenv",
  "futures",
+ "geoutils",
  "ipinfo",
+ "plotpy",
  "rand",
  "rayon",
  "serde",
@@ -812,6 +825,12 @@ name = "pkg-config"
 version = "0.3.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
+
+[[package]]
+name = "plotpy"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75a04eeeeb25784434138d5d7294b97a6f667cbe410a1426a13fe00ae5ca3868"
 
 [[package]]
 name = "pnet_base"

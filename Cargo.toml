@@ -7,11 +7,14 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+cities = { path = "./cities" }
 csv = "1.3.0"
 dns-lookup = "2.0.4"
 dotenv = "0.15.0"
 futures = "0.3.28"
+geoutils = "0.5.1"
 ipinfo = "2.2.0"
+plotpy = "0.5.1"
 rand = "0.8.5"
 rayon = "1.8.0"
 serde = { version = "1.0.189", features = ["serde_derive"] }
