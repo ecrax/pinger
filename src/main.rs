@@ -9,7 +9,6 @@ use ipinfo::{IpInfo, IpInfoConfig};
 use rand::random;
 use rayon::prelude::*;
 use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
-use tokio::time;
 
 #[derive(Debug, serde::Deserialize)]
 struct Record {
@@ -106,8 +105,8 @@ async fn collect_geolocations() -> anyhow::Result<()> {
         match res {
             Ok(res) => {
                 let res = res
-                    .iter()
-                    .map(|(_, d)| RecordWithGeolocation {
+                    .values()
+                    .map(|d| RecordWithGeolocation {
                         ip: d.ip.clone(),
                         location: d.city.clone(),
                     })
@@ -151,10 +150,8 @@ async fn ping_ips() -> anyhow::Result<()> {
     let results = join_all(tasks).await;
     let results = results
         .into_iter()
-        .filter(|r| r.is_ok())
-        .map(|r| r.unwrap())
-        .filter(|r| r.is_some())
-        .map(|r| r.unwrap())
+        .filter_map(|r| r.ok())
+        .flatten()
         .collect::<Vec<_>>();
 
     let output = File::create("./with_times.json")?;
