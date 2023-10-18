@@ -250,19 +250,19 @@ fn plot_data() -> anyhow::Result<()> {
     plot.add(&curve)
         .grid_and_labels("Time (ms)", "Distance (km)")
         .set_title("Ping time vs. distance")
-        .set_figure_size_points(1600., 1000.)
+        .set_figure_size_points(1000., 600.)
         .set_ticks_x(100., 50., "");
-    plot.save("plot.png").unwrap();
+    plot.save("plot.svg").unwrap();
 
     let mut plot = Plot::new();
     plot.add(&curve)
         .grid_and_labels("Time (ms)", "Distance (km)")
-        .set_title("Ping time vs. distance")
-        .set_figure_size_points(1600., 1000.)
+        .set_title("Ping time vs. distance (log-log)")
+        .set_figure_size_points(1000., 600.)
         .set_log_x(true)
         .set_log_y(true)
         .set_ticks_x(0., 0., "");
-    plot.save("plot_log.png").unwrap();
+    plot.save("plot_log.svg").unwrap();
 
     Ok(())
 }
